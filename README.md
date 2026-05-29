@@ -3,13 +3,13 @@
 UI and API test suite for the [Practice Software Testing](https://practicesoftwaretesting.com)
 shop (the "Toolshop" demo), written with Playwright and TypeScript.
 
-[![e2e](https://github.com/a-piatrou-godeltech/toolshop-e2e/actions/workflows/ci.yml/badge.svg)](https://github.com/a-piatrou-godeltech/toolshop-e2e/actions/workflows/ci.yml)
+[![ci](https://github.com/a-piatrou/toolshop-e2e/actions/workflows/ci.yml/badge.svg)](https://github.com/a-piatrou/toolshop-e2e/actions/workflows/ci.yml)
 
 I keep this around as a working reference for the way I like to structure browser
 automation: a thin page-object layer, fixtures that own setup, API-driven test
-data, schema-checked API tests, and everything running on a sharded CI pipeline.
-The target is a public demo app, so the whole thing is runnable by anyone who
-clones it — no credentials or local backend required.
+data, and schema-checked API tests. The target is a public demo app, so the whole
+thing is runnable by anyone who clones it — no credentials or local backend
+required.
 
 ## Stack
 
@@ -17,7 +17,7 @@ clones it — no credentials or local backend required.
 - **Zod** — response/contract validation for the API layer
 - **Faker** — disposable users and test data
 - **ESLint** (flat config) + **Prettier**
-- **GitHub Actions** — lint/typecheck gate, sharded runs, merged HTML report
+- **GitHub Actions** — lint/typecheck gate, API suite, merged HTML report
 
 ## Layout
 
@@ -67,7 +67,8 @@ npm run report      # open the last HTML report
 **Two projects, one config.** The `api` project talks straight to the REST API
 (no browser); the `chromium` project drives the UI. They share base settings but
 get their own `baseURL`. Tags (`@smoke`, `@api`, `@regression`) make it easy to
-slice the suite — CI shards the UI project and runs the API project on its own.
+slice the suite — e.g. run only the API project in CI, or just the `@smoke` set
+locally.
 
 **Page objects stay thin.** They expose locators and intent-level actions
 (`homePage.search(...)`, `checkout.payWith(...)`) and leave assertions to the
@@ -89,14 +90,23 @@ leans on Playwright's auto-waiting, synchronises on the requests behind
 search/sort, and uses unique generated data to keep runs independent and
 repeatable.
 
+## Running the UI suite
+
+`npm run test:ui` runs the browser tests against the live demo. They pass from a
+normal machine, but **not from hosted CI runners**: the public storefront sits
+behind a Cloudflare "verify you are human" challenge that trips on datacenter IPs,
+so the page never loads there. The REST API has no such gate, which is why the
+hosted pipeline runs the API suite and the UI suite is run locally (or against a
+self-hosted instance of the app). The UI tests themselves are environment-agnostic
+— point `BASE_URL` at any Toolshop deployment and they run.
+
 ## CI
 
 `.github/workflows/ci.yml` runs on every push and PR:
 
 1. **quality** — ESLint, `tsc`, Prettier check.
-2. **test** — a matrix of `api`, `ui-1`, `ui-2` (the UI project sharded in two),
-   each uploading a blob report.
-3. **report** — merges the blobs into a single HTML report and uploads it as an
+2. **api** — the API project (no browser needed), uploading a blob report.
+3. **report** — merges the blob into a single HTML report and uploads it as an
    artifact.
 
 ## License
